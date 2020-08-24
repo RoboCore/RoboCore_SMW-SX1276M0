@@ -5,7 +5,7 @@
 * This program uses the ESP32 to communicate with the LoRaWAN module.
 * 
 * Copyright 2020 RoboCore.
-* Written by Francois (22/07/20).
+* Written by Francois (24/08/20).
 * 
 * 
 * This file is part of the SMW_SX1276M0 library ("SMW_SX1276M0-lib").
@@ -45,12 +45,11 @@ SMW_SX1276M0 lorawan(LoRaSerial);
 
 CommandResponse response;
 
-const char devaddr[] = "00000000";
-const char appskey[] = "00000000000000000000000000000000";
-const char nwkskey[] = "00000000000000000000000000000000";
+const char DEVADDR[] = "00000000";
+const char APPSKEY[] = "00000000000000000000000000000000";
+const char NWKSKEY[] = "00000000000000000000000000000000";
 
-boolean connected = false;
-const unsigned long pause_time = 300000; // [ms] (5 min)
+const unsigned long PAUSE_TIME = 300000; // [ms] (5 min)
 unsigned long timeout;
 int count = 0;
 
@@ -86,30 +85,30 @@ void setup() {
   }
 
   // set the Device Address
-  response = lorawan.set_DevAddr(devaddr);
+  response = lorawan.set_DevAddr(DEVADDR);
   if(response == CommandResponse::OK){
     Serial.print(F("Device Address set ("));
-    Serial.write((uint8_t *)devaddr, 8);
+    Serial.write((uint8_t *)DEVADDR, 8);
     Serial.println(')');
   } else {
     Serial.println(F("Error setting the Device Address"));
   }
 
   // set the Application Session Key
-  response = lorawan.set_AppSKey(appskey);
+  response = lorawan.set_AppSKey(APPSKEY);
   if(response == CommandResponse::OK){
     Serial.print(F("Application Session Key set ("));
-    Serial.write((uint8_t *)appskey, 32);
+    Serial.write((uint8_t *)APPSKEY, 32);
     Serial.println(')');
   } else {
     Serial.println(F("Error setting the Application Session Key"));
   }
 
   // set the Network Session Key
-  response = lorawan.set_NwkSKey(nwkskey);
+  response = lorawan.set_NwkSKey(NWKSKEY);
   if(response == CommandResponse::OK){
     Serial.print(F("Network Session Key set ("));
-    Serial.write((uint8_t *)nwkskey, 32);
+    Serial.write((uint8_t *)NWKSKEY, 32);
     Serial.println(')');
   } else {
     Serial.println(F("Error setting the Network Session Key"));
@@ -136,7 +135,7 @@ void loop() {
   lorawan.listen();
 
   // send a message
-  if(connected){
+  if(lorawan.isConnected()){
     if(timeout < millis()){
       // update the counter
       count++;
@@ -161,7 +160,7 @@ void loop() {
       response = lorawan.sendX(1, data);
   
       // update the timeout
-      timeout = millis() + pause_time;
+      timeout = millis() + PAUSE_TIME;
     }
   } else {
     if(timeout < millis()){
@@ -183,7 +182,6 @@ void event_handler(Event type){
   // check if join event
   if(type == Event::JOINED){
     Serial.println(F("Joined"));
-    connected = true; // set
   }
 }
 

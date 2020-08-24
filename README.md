@@ -23,7 +23,8 @@ Documentation
 Version History
 ---------------
 
-* [v1.0.0](https://github.com/RoboCore/RoboCore_SMW-SX1276M0) - First release.
+* [v1.0.1](https://github.com/RoboCore/RoboCore_SMW-SX1276M0) - Minor update.
+* [v1.0.0](https://github.com/RoboCore/RoboCore_SMW-SX1276M0/releases/tag/v1.0.0) - First release.
 
 License Information
 -------------------

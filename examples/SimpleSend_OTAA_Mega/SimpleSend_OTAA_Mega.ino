@@ -6,7 +6,7 @@
 * with the LoRaWAN module.
 * 
 * Copyright 2020 RoboCore.
-* Written by Francois (14/07/20).
+* Written by Francois (24/08/20).
 * 
 * 
 * This file is part of the SMW_SX1276M0 library ("SMW_SX1276M0-lib").
@@ -41,11 +41,10 @@ SMW_SX1276M0 lorawan(Serial1);
 
 CommandResponse response;
 
-const char appeui[] = "0000000000000000";
-const char appkey[] = "00000000000000000000000000000000";
+const char APPEUI[] = "0000000000000000";
+const char APPKEY[] = "00000000000000000000000000000000";
 
-boolean connected = false;
-const unsigned long pause_time = 300000; // [ms] (5 min)
+const unsigned long PAUSE_TIME = 300000; // [ms] (5 min)
 unsigned long timeout;
 int count = 0;
 
@@ -81,20 +80,20 @@ void setup() {
   }
 
   // set the Application EUI
-  response = lorawan.set_AppEUI(appeui);
+  response = lorawan.set_AppEUI(APPEUI);
   if(response == CommandResponse::OK){
     Serial.print(F("Application EUI set ("));
-    Serial.write(appeui, 16);
+    Serial.write(APPEUI, 16);
     Serial.println(')');
   } else {
     Serial.println(F("Error setting the Application EUI"));
   }
 
   // set the Application Key
-  response = lorawan.set_AppKey(appkey);
+  response = lorawan.set_AppKey(APPKEY);
   if(response == CommandResponse::OK){
     Serial.print(F("Application Key set ("));
-    Serial.write(appkey, 32);
+    Serial.write(APPKEY, 32);
     Serial.println(')');
   } else {
     Serial.println(F("Error setting the Application Key"));
@@ -121,7 +120,7 @@ void loop() {
   lorawan.listen();
 
   // send a message
-  if(connected){
+  if(lorawan.isConnected()){
     if(timeout < millis()){
       // update the counter
       count++;
@@ -146,7 +145,7 @@ void loop() {
       response = lorawan.sendX(1, data);
   
       // update the timeout
-      timeout = millis() + pause_time;
+      timeout = millis() + PAUSE_TIME;
     }
   } else {
     if(timeout < millis()){
@@ -168,7 +167,6 @@ void event_handler(Event type){
   // check if join event
   if(type == Event::JOINED){
     Serial.println(F("Joined"));
-    connected = true; // set
   }
 }
 

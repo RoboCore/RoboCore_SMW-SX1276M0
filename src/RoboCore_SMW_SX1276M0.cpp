@@ -4,7 +4,7 @@
 * Library to use the SMW_SX1276M0 LoRaWAN module.
 * 
 * Copyright 2020 RoboCore.
-* Written by Francois (13/08/20).
+* Written by Francois (24/08/20).
 * 
 * 
 * This file is part of the SMW_SX1276M0 library ("SMW_SX1276M0-lib").
@@ -379,7 +379,7 @@ CommandResponse SMW_SX1276M0::get_JoinStatus(uint8_t (&status)){
       uint8_t b = _buffer.read();
       status = b - '0';
 
-      _connected = (b == 1) ? true : false; // update
+      _connected = (b == '1') ? true : false; // update
     }
   }
 

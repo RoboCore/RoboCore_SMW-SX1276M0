@@ -7,7 +7,7 @@
 * Library to manipulate buffers.
 * 
 * Copyright 2020 RoboCore.
-* Written by Francois (16/07/20).
+* Written by Francois (24/08/20).
 * 
 * 
 * This file is part of the SMW_SX1276M0 library ("SMW_SX1276M0-lib").
@@ -58,6 +58,8 @@ class Buffer {
     uint8_t size(void);
 
     Buffer& operator=(const Buffer&);
+
+    const uint8_t& operator[](uint8_t) const;
 
 #ifdef BUFFER_DEBUG
     void print(Stream *);

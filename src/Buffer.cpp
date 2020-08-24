@@ -4,7 +4,7 @@
 * Library to manipulate buffers.
 * 
 * Copyright 2020 RoboCore.
-* Written by Francois (17/04/20).
+* Written by Francois (24/08/20).
 * 
 * 
 * This file is part of the SMW_SX1276M0 library ("SMW_SX1276M0-lib").
@@ -100,6 +100,19 @@ Buffer& Buffer::operator=(const Buffer& buffer){
   }
 
   return *this;
+}
+
+// --------------------------------------------------
+
+// Operator [] (subscript)
+//  @returns the value of the last index if out of bounds [const uint8_t]
+const uint8_t& Buffer::operator[](uint8_t index) const {
+  // check the index
+  if(index >= _index){
+    return _buffer[_index - 1]; // return from the last index
+  }
+
+  return _buffer[index];
 }
 
 // --------------------------------------------------
