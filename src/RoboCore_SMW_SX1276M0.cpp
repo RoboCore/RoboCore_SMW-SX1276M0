@@ -1441,7 +1441,7 @@ CommandResponse SMW_SX1276M0::set_NwkSKey(const char *nwkskey){
 //  @param (pin_reset) : the pin to reset the module [int16_t]
 void SMW_SX1276M0::setPinReset(int16_t pin_reset){
   _pin_reset = pin_reset;
-  pinMode(_pin_reset, INPUT);           // There is an internal pull-up, no need to output HIGH
+  pinMode(_pin_reset, INPUT);           // There is an internal pull-down in the DTC114EET1G, no need to output LOW
 }
 
 // --------------------------------------------------
