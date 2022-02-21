@@ -968,12 +968,12 @@ CommandResponse SMW_SX1276M0::reset(void){
     _send_command(CMD_RESET);
   } else {
     // the reset pin is set, so do a hardware reset
-    // Reference: elr100ul00-datasheet-eng-0.3v.pdf, page 12, section 4.1
-    pinMode(_pin_reset, INPUT);
-    pinMode(_pin_reset, OUTPUT);
+    // Reference: elr100ul00-datasheet-eng-0.3v.pdf, page 12, section 4.1 says the pin should be kept as an input
+    // However this is not compatible with some pins on some architectures that have fixed internal pull-up resistors
+    // when in INPUT mode.
     digitalWrite(_pin_reset, HIGH);         // Robocore's modules have a transistor as an inverter instead of a MOSFET
     delay(2);
-    pinMode(_pin_reset, INPUT);
+    digitalWrite(_pin_reset, LOW);
   }
 
   _reset = false; // reset
@@ -1018,7 +1018,6 @@ CommandResponse SMW_SX1276M0::sendT(uint8_t port, const char *data){
   // parse the port
   uint8_t aport = port; // auxiliary variable for <port>
   uint8_t temp[3];
-  uint8_t s;
 
   temp[0] = aport / 100;
   aport %= 100;
@@ -1031,8 +1030,7 @@ CommandResponse SMW_SX1276M0::sendT(uint8_t port, const char *data){
   aport = 0; // reset
   for(uint8_t i=0 ; i < 3 ; i++){
     if((temp[i] > 0) || (aport > 0)){
-      s = temp[i] + '0';        // convert to ASCII character, avoids "narrowing conversion" warning
-      sport[index++] = s;
+      sport[index++] = temp[i] + '0';
     }
     aport += temp[i]; // update (simple)
   }
@@ -1441,7 +1439,8 @@ CommandResponse SMW_SX1276M0::set_NwkSKey(const char *nwkskey){
 //  @param (pin_reset) : the pin to reset the module [int16_t]
 void SMW_SX1276M0::setPinReset(int16_t pin_reset){
   _pin_reset = pin_reset;
-  pinMode(_pin_reset, INPUT);           // There is an internal pull-down in the DTC114EET1G, no need to output LOW
+  pinMode(_pin_reset, OUTPUT);
+  pinMode(_pin_reset, LOW); // Active HIGH
 }
 
 // --------------------------------------------------
