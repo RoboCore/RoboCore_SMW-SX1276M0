@@ -1065,7 +1065,7 @@ CommandResponse SMW_SX1276M0::sendX(uint8_t port, const char *data){
   // parse the port
   uint8_t aport = port; // auxiliary variable for <port>
   uint8_t temp[3];
-  uint8_t s;
+
   temp[0] = aport / 100;
   aport %= 100;
   temp[1] = aport / 10;
@@ -1077,8 +1077,7 @@ CommandResponse SMW_SX1276M0::sendX(uint8_t port, const char *data){
   aport = 0; // reset
   for(uint8_t i=0 ; i < 3 ; i++){
     if((temp[i] > 0) || (aport > 0)){
-      s = temp[i] + '0';  // convert to ASCII character
-      sport[index++] = s;
+      sport[index++] = temp[i] + '0';  // convert to ASCII character
     }
     aport += temp[i]; // update (simple)
   }
@@ -1440,7 +1439,7 @@ CommandResponse SMW_SX1276M0::set_NwkSKey(const char *nwkskey){
 void SMW_SX1276M0::setPinReset(int16_t pin_reset){
   _pin_reset = pin_reset;
   pinMode(_pin_reset, OUTPUT);
-  pinMode(_pin_reset, LOW); // Active HIGH
+  digitalWrite(_pin_reset, LOW); // Active HIGH
 }
 
 // --------------------------------------------------
