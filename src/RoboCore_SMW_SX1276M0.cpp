@@ -968,8 +968,11 @@ CommandResponse SMW_SX1276M0::reset(void){
     _send_command(CMD_RESET);
   } else {
     // the reset pin is set, so do a hardware reset
-    digitalWrite(_pin_reset, HIGH); // active HIGH
-    _delay(2); // 2 ms (minimum is 1 ms)
+    // Reference: elr100ul00-datasheet-eng-0.3v.pdf, page 12, section 4.1 says the pin should be kept as an input
+    // However this is not compatible with some pins on some architectures that have fixed internal pull-up resistors
+    // when in INPUT mode.
+    digitalWrite(_pin_reset, HIGH);         // Robocore's modules have a transistor as an inverter instead of a MOSFET
+    delay(2);
     digitalWrite(_pin_reset, LOW);
   }
 
@@ -1015,6 +1018,7 @@ CommandResponse SMW_SX1276M0::sendT(uint8_t port, const char *data){
   // parse the port
   uint8_t aport = port; // auxiliary variable for <port>
   uint8_t temp[3];
+
   temp[0] = aport / 100;
   aport %= 100;
   temp[1] = aport / 10;
@@ -1026,7 +1030,7 @@ CommandResponse SMW_SX1276M0::sendT(uint8_t port, const char *data){
   aport = 0; // reset
   for(uint8_t i=0 ; i < 3 ; i++){
     if((temp[i] > 0) || (aport > 0)){
-      sport[index++] = temp[i] + '0'; // convert to ASCII character
+      sport[index++] = temp[i] + '0';
     }
     aport += temp[i]; // update (simple)
   }
@@ -1061,6 +1065,7 @@ CommandResponse SMW_SX1276M0::sendX(uint8_t port, const char *data){
   // parse the port
   uint8_t aport = port; // auxiliary variable for <port>
   uint8_t temp[3];
+
   temp[0] = aport / 100;
   aport %= 100;
   temp[1] = aport / 10;
@@ -1072,7 +1077,7 @@ CommandResponse SMW_SX1276M0::sendX(uint8_t port, const char *data){
   aport = 0; // reset
   for(uint8_t i=0 ; i < 3 ; i++){
     if((temp[i] > 0) || (aport > 0)){
-      sport[index++] = temp[i] + '0'; // convert to ASCII character
+      sport[index++] = temp[i] + '0';  // convert to ASCII character
     }
     aport += temp[i]; // update (simple)
   }
@@ -1170,7 +1175,8 @@ void SMW_SX1276M0::_send_command(const char *command, uint8_t qty, ...){
 //  @returns the type of the response [CommandResponse]
 CommandResponse SMW_SX1276M0::set_ADR(uint8_t adr){
   adr = (adr == SMW_SX1276M0_ADR_ON) ? SMW_SX1276M0_ADR_ON : SMW_SX1276M0_ADR_OFF; // force binary value
-  char data[] = { (adr + '0') , CHAR_EOS}; // convert to ASCII character
+  adr+= '0';
+  char data[] = { adr , CHAR_EOS}; // convert to ASCII character
   
   // send the command and read the response
   _send_command(CMD_ADR, 1, data);
@@ -1186,7 +1192,8 @@ CommandResponse SMW_SX1276M0::set_ADR(uint8_t adr){
 //  @returns the type of the response [CommandResponse]
 CommandResponse SMW_SX1276M0::set_AJoin(uint8_t ajoin){
   ajoin = (ajoin == SMW_SX1276M0_AUTOMATIC_JOIN_ON) ? SMW_SX1276M0_AUTOMATIC_JOIN_ON : SMW_SX1276M0_AUTOMATIC_JOIN_OFF; // force binary value
-  char data[] = { (ajoin + '0') , CHAR_EOS}; // convert to ASCII character
+  ajoin += '0'; // convert to ASCII character
+  char data[] = { ajoin, CHAR_EOS};
   
   // send the command and read the response
   _send_command(CMD_AJOIN, 1, data);
@@ -1330,7 +1337,8 @@ CommandResponse SMW_SX1276M0::set_DR(uint8_t dr){
     return CommandResponse::ERROR;
   }
   
-  char data[] = { (dr + '0') , CHAR_EOS}; // convert to ASCII character
+  dr+= '0'; // convert to ASCII character
+  char data[] = { dr, CHAR_EOS};
   
   // send the command and read the response
   _send_command(CMD_DR, 1, data);
@@ -1346,7 +1354,8 @@ CommandResponse SMW_SX1276M0::set_DR(uint8_t dr){
 //  @returns the type of the response [CommandResponse]
 CommandResponse SMW_SX1276M0::set_Echo(uint8_t echo){
   echo = (echo == SMW_SX1276M0_ECHO_ON) ? SMW_SX1276M0_ECHO_ON : SMW_SX1276M0_ECHO_OFF; // force binary value
-  char data[] = { (echo + '0') , CHAR_EOS}; // convert to ASCII character
+  echo += '0';  // convert to ASCII character
+  char data[] = { echo, CHAR_EOS};
   
   // send the command and read the response
   _send_command(CMD_ECHO, 1, data);
@@ -1366,8 +1375,9 @@ CommandResponse SMW_SX1276M0::set_JoinMode(uint8_t mode){
   if(mode > SMW_SX1276M0_JOIN_MODE_P2P){
     return CommandResponse::ERROR;
   }
-  
-  char data[] = { (mode + '0') , CHAR_EOS}; // convert to ASCII character
+
+  mode += '0'; // convert to ASCII character. Avoids "narrowing conversion" warnings
+  char data[] = { mode , CHAR_EOS};
   
   // send the command and read the response
   _send_command(CMD_NJM, 1, data);
@@ -1429,7 +1439,7 @@ CommandResponse SMW_SX1276M0::set_NwkSKey(const char *nwkskey){
 void SMW_SX1276M0::setPinReset(int16_t pin_reset){
   _pin_reset = pin_reset;
   pinMode(_pin_reset, OUTPUT);
-  digitalWrite(_pin_reset, LOW); // active HIGH
+  digitalWrite(_pin_reset, LOW); // Active HIGH
 }
 
 // --------------------------------------------------
