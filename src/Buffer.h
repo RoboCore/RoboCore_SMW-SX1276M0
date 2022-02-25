@@ -6,7 +6,7 @@
 * 
 * Library to manipulate buffers.
 * 
-* Copyright 2020 RoboCore.
+* Copyright 2022 RoboCore.
 * Written by Francois (24/08/20).
 * 
 * 

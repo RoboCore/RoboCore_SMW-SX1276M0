@@ -3,7 +3,7 @@
 * 
 * Library to manipulate buffers.
 * 
-* Copyright 2020 RoboCore.
+* Copyright 2022 RoboCore.
 * Written by Francois (24/08/20).
 * 
 * 
@@ -63,8 +63,8 @@ Buffer::Buffer(uint8_t size) :
 // Copy constructor
 //  @param (buffer) : the buffer to copy [Buffer]
 Buffer::Buffer(const Buffer& buffer) :
-  _size(buffer._size),
-  _index(buffer._index)
+  _index(buffer._index),
+  _size(buffer._size)
   {
   _buffer = new uint8_t[_size]; // allocate the memory
   for(uint8_t i=0 ; i < _size ; i++){

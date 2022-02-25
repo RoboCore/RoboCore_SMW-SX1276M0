@@ -6,7 +6,7 @@
 * 
 * Library to use the SMW_SX1276M0 LoRaWAN module.
 * 
-* Copyright 2020 RoboCore.
+* Copyright 2022 RoboCore.
 * Written by Francois (13/08/20).
 * 
 * 
