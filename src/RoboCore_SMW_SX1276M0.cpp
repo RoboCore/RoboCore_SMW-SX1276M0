@@ -4,7 +4,9 @@
 * Library to use the SMW_SX1276M0 LoRaWAN module.
 * 
 * Copyright 2022 RoboCore.
-* Written by Francois (24/08/20).
+* Written by Francois (24/08/2020).
+* Updated by mcpicoli (24/02/2022): avoid narrowing conversion warnings.
+* Updated by Francois (02/03/2022): minor corrections.
 * 
 * 
 * This file is part of the SMW_SX1276M0 library ("SMW_SX1276M0-lib").
@@ -847,7 +849,7 @@ CommandResponse SMW_SX1276M0::_read_response(uint32_t timeout){
 CommandResponse SMW_SX1276M0::readT(void){
   // send the command and read the response
   _send_command(CMD_RECV);
-  return _read_response(SMW_SX1276M0_TIMEOUT_READ);
+  return _read_response(SMW_SX1276M0_TIMEOUT_READ_DOWNLINK);
 }
 
 // --------------------------------------------------
@@ -907,7 +909,7 @@ CommandResponse SMW_SX1276M0::readT(uint8_t (&port), Buffer (&buffer)){
 CommandResponse SMW_SX1276M0::readX(void){
   // send the command and read the response
   _send_command(CMD_RECVB);
-  return _read_response(SMW_SX1276M0_TIMEOUT_READ);
+  return _read_response(SMW_SX1276M0_TIMEOUT_READ_DOWNLINK);
 }
 // --------------------------------------------------
 

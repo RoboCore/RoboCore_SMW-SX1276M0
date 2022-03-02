@@ -4,7 +4,7 @@
 * Library to manipulate buffers.
 * 
 * Copyright 2022 RoboCore.
-* Written by Francois (24/08/20).
+* Written by Francois (24/08/2020).
 * 
 * 
 * This file is part of the SMW_SX1276M0 library ("SMW_SX1276M0-lib").

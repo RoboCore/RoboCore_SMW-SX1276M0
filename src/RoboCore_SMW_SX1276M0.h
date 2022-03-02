@@ -7,7 +7,8 @@
 * Library to use the SMW_SX1276M0 LoRaWAN module.
 * 
 * Copyright 2022 RoboCore.
-* Written by Francois (13/08/20).
+* Written by Francois (13/08/2020).
+* Updated by Francois (02/03/2022): minor corrections.
 * 
 * 
 * This file is part of the SMW_SX1276M0 library ("SMW_SX1276M0-lib").
@@ -28,11 +29,12 @@
 
 #define SMW_SX1276M0_DEBUG
 
-#define SMW_SX1276M0_BUFFER_SIZE            50
-#define SMW_SX1276M0_DELAY_INCOMING_DATA    10 // [ms]
-#define SMW_SX1276M0_TIMEOUT_READ           10 // [ms]
-#define SMW_SX1276M0_TIMEOUT_RESET        5000 // [ms]
-#define SMW_SX1276M0_TIMEOUT_WRITE        1000 // [ms]
+#define SMW_SX1276M0_BUFFER_SIZE              50
+#define SMW_SX1276M0_DELAY_INCOMING_DATA      10 // [ms]
+#define SMW_SX1276M0_TIMEOUT_READ             25 // [ms]
+#define SMW_SX1276M0_TIMEOUT_READ_DOWNLINK   300 // [ms]
+#define SMW_SX1276M0_TIMEOUT_RESET          5000 // [ms]
+#define SMW_SX1276M0_TIMEOUT_WRITE          1000 // [ms]
 
 
 // --------------------------------------------------
