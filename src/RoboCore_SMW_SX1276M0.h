@@ -93,6 +93,10 @@ const char* const CMD_VERSION = "VER"; // Version (9.2.3)
 const char* const CMD_SLEEP = "SLEEP"; // Alarm (9.2.6)
 const char* const CMD_ALARM = "ALARM"; // Alarm (9.2.7)
 const char* const CMD_ECHO = "ECHO"; // Echo (9.2.10)
+const char* const CMD_TXP= "TXP"; // TX Power (8.2.12)
+const char* const CMD_REGION= "REGION"; // TX Power (8.2.12)
+const char* const CMD_CONFIRMATION= "CFM"; // confirmation (9.2.5)
+const char* const CMD_NUM_RETIRES= "MCFR"; // confirmation (8.2.11)
 
 const char* const RSPNS_OK = "OK";
 const char* const RSPNS_FAILED = "Failed";
@@ -195,6 +199,10 @@ class SMW_SX1276M0 {
     CommandResponse set_Echo(uint8_t);
     CommandResponse set_JoinMode(uint8_t);
     CommandResponse set_NwkSKey(const char *);
+    CommandResponse set_NumberOfRetries(uint8_t);
+    CommandResponse set_Confirmation(uint8_t);
+    CommandResponse set_TXPower(uint8_t);
+    CommandResponse set_Region(uint8_t);
     void setPinReset(int16_t);
     CommandResponse sleep(uint32_t = 0);
 
