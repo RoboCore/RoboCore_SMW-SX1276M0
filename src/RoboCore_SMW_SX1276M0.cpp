@@ -975,7 +975,7 @@ CommandResponse SMW_SX1276M0::set_NumberOfRetries(uint8_t num_retries){
 
   snprintf(data, sizeof(data), "%d%c", num_retries, CHAR_EOS);
 
-  _send_command(CMD_NUM_RETIRES, 1, data);
+  _send_command(CMD_NUM_RETRIES, 1, data);
   CommandResponse res = _read_response(SMW_SX1276M0_TIMEOUT_WRITE);
   return res;
 }

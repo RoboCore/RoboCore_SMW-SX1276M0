@@ -96,7 +96,7 @@ const char* const CMD_ECHO = "ECHO"; // Echo (9.2.10)
 const char* const CMD_TXP= "TXP"; // TX Power (8.2.12)
 const char* const CMD_REGION= "REGION"; // TX Power (8.2.12)
 const char* const CMD_CONFIRMATION= "CFM"; // confirmation (9.2.5)
-const char* const CMD_NUM_RETIRES= "MCFR"; // confirmation (8.2.11)
+const char* const CMD_NUM_RETRIES= "MCFR"; // confirmation (8.2.11)
 
 const char* const RSPNS_OK = "OK";
 const char* const RSPNS_FAILED = "Failed";
