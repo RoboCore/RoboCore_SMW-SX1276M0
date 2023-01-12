@@ -961,6 +961,86 @@ CommandResponse SMW_SX1276M0::readX(uint8_t (&port), Buffer (&buffer)){
 }
 
 // --------------------------------------------------
+// Set number of retries (when confirmation mode is on)
+//  @param : number of retries (1 .. 8)
+//  @returns the type of the response [CommandResponse]
+CommandResponse SMW_SX1276M0::set_NumberOfRetries(uint8_t num_retries){
+  // send the command and read the response
+  char data[4] = {CHAR_EOS};
+
+  if ((num_retries < 1) || (num_retries > 8) )
+  {
+    return CommandResponse::ERROR;
+  }
+
+  snprintf(data, sizeof(data), "%d%c", num_retries, CHAR_EOS);
+
+  _send_command(CMD_NUM_RETRIES, 1, data);
+  CommandResponse res = _read_response(SMW_SX1276M0_TIMEOUT_WRITE);
+  return res;
+}
+
+// --------------------------------------------------
+// Set confirmation mode
+//  @param : confirmation mode (0 for setting confirmation off; 1 for setting confirmation on)
+//  @returns the type of the response [CommandResponse]
+CommandResponse SMW_SX1276M0::set_Confirmation(uint8_t confirm_mode){
+  // send the command and read the response
+  char data[4] = {CHAR_EOS};
+
+  if ((confirm_mode != 0) && (confirm_mode != 1) )
+  {
+    return CommandResponse::ERROR;
+  }
+
+  snprintf(data, sizeof(data), "%d%c", confirm_mode, CHAR_EOS);
+
+  _send_command(CMD_CONFIRMATION, 1, data);
+  CommandResponse res = _read_response(SMW_SX1276M0_TIMEOUT_WRITE);
+  return res;
+}
+
+// --------------------------------------------------
+// Set the TX Power
+//  @param : power (0 .. 10)
+//  @returns the type of the response [CommandResponse]
+CommandResponse SMW_SX1276M0::set_TXPower(uint8_t tx_power){
+  // send the command and read the response
+  char data[4] = {CHAR_EOS};
+
+  if (tx_power > 10)
+  {
+    return CommandResponse::ERROR;
+  }
+
+  snprintf(data, sizeof(data), "%d%c", tx_power, CHAR_EOS);
+
+  _send_command(CMD_TXP, 1, data);
+  CommandResponse res = _read_response(SMW_SX1276M0_TIMEOUT_WRITE); // this command takes almost 1 s to reply
+  return res;
+}
+
+// --------------------------------------------------
+// Set the lorawan region
+//  @param : region (1 .. 9)
+//  @returns the type of the response [CommandResponse]
+CommandResponse SMW_SX1276M0::set_Region(uint8_t lorawan_region){
+  // send the command and read the response
+  char data[4] = {CHAR_EOS};
+
+  if (lorawan_region > 9)
+  {
+    return CommandResponse::ERROR;
+  }
+
+  snprintf(data, sizeof(data), "%d%c", lorawan_region, CHAR_EOS);
+
+  _send_command(CMD_REGION, 1, data);
+  CommandResponse res = _read_response(SMW_SX1276M0_TIMEOUT_WRITE); // this command takes almost 1 s to reply
+  return res;
+}
+
+// --------------------------------------------------
 
 // Reset the module
 //  @returns the type of the response [CommandResponse]
