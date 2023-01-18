@@ -9,6 +9,7 @@ get_Alarm	KEYWORD2
 get_AppEUI	KEYWORD2
 get_AppKey	KEYWORD2
 get_AppSKey	KEYWORD2
+get_Confirmation	KEYWORD2
 get_DevAddr	KEYWORD2
 get_DevEUI	KEYWORD2
 get_DR	KEYWORD2
@@ -16,9 +17,14 @@ get_Echo	KEYWORD2
 get_buffer	KEYWORD2
 get_JoinMode	KEYWORD2
 get_JoinStatus	KEYWORD2
+get_NumberOfRetries	KEYWORD2
 get_NwkSKey	KEYWORD2
+get_P2P_DevAddr	KEYWORD2
+get_P2P_SyncWord	KEYWORD2
+get_Region	KEYWORD2
 get_RSSI	KEYWORD2
 get_SNR	KEYWORD2
+get_TXPower	KEYWORD2
 get_Version	KEYWORD2
 
 isConnected	KEYWORD2
@@ -39,14 +45,19 @@ set_Alarm	KEYWORD2
 set_AppEUI	KEYWORD2
 set_AppKey	KEYWORD2
 set_AppSKey	KEYWORD2
+set_Confirmation	KEYWORD2
 set_DevAddr	KEYWORD2
 set_DevEUI	KEYWORD2
 set_DR	KEYWORD2
 set_Echo	KEYWORD2
 set_JoinMode	KEYWORD2
+set_NumberOfRetries	KEYWORD2
 set_NwkSKey	KEYWORD2
+set_P2P_DevAddr	KEYWORD2
+set_P2P_SyncWord	KEYWORD2
+set_Region	KEYWORD2
+set_TXPower	KEYWORD2
 setPinReset	KEYWORD2
-
 
 SMW_SX1276M0_ADR_OFF	LITERAL1
 SMW_SX1276M0_ADR_ON	LITERAL1

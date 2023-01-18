@@ -2,13 +2,16 @@
 #define SMW_SX1276M0_H
 
 /*******************************************************************************
-* RoboCore SMW_SX1276M0 Library (v1.0)
+* RoboCore SMW_SX1276M0 Library (v1.1)
 * 
 * Library to use the SMW_SX1276M0 LoRaWAN module.
 * 
-* Copyright 2022 RoboCore.
-* Written by Francois (13/08/2020).
+* Copyright 2023 RoboCore.
+* Written by Francois (24/08/2020).
+* Updated by @mcpicoli (24/02/2022): avoid narrowing conversion warnings.
 * Updated by Francois (02/03/2022): minor corrections.
+* Updated by Pedro Bertoleti (@phfbertoleti) (12/01/2023): added commands.
+* Updated by Francois (16/01/2023): added commands & minor corrections.
 * 
 * 
 * This file is part of the SMW_SX1276M0 library ("SMW_SX1276M0-lib").
@@ -86,17 +89,19 @@ const char* const CMD_RECV = "RECV"; // Receive (7.2.3)
 const char* const CMD_RECVB = "RECVB"; // Receive B (7.2.4)
 const char* const CMD_RSSI = "RSSI"; // RSSI (7.2.5)
 const char* const CMD_SNR = "SNR"; // SNR (7.2.6)
+const char* const CMD_REGION = "REGION"; // Region (8.2.1)
 const char* const CMD_ADR = "ADR"; // Adaptive Data Rate (8.2.2)
 const char* const CMD_DR = "DR"; // Data Rate (8.2.3)
+const char* const CMD_NUM_RETRIES = "MCFR"; // Uplink Retries with Confirmation (8.2.11)
+const char* const CMD_TXP = "TXP"; // TX Power (8.2.12)
 const char* const CMD_RESET = "RESET"; // Reset (9.2.1)
 const char* const CMD_VERSION = "VER"; // Version (9.2.3)
+const char* const CMD_CONFIRMATION = "CFM"; // Uplink Confirmation (9.2.5)
 const char* const CMD_SLEEP = "SLEEP"; // Alarm (9.2.6)
 const char* const CMD_ALARM = "ALARM"; // Alarm (9.2.7)
 const char* const CMD_ECHO = "ECHO"; // Echo (9.2.10)
-const char* const CMD_TXP= "TXP"; // TX Power (8.2.12)
-const char* const CMD_REGION= "REGION"; // TX Power (8.2.12)
-const char* const CMD_CONFIRMATION= "CFM"; // confirmation (9.2.5)
-const char* const CMD_NUM_RETRIES= "MCFR"; // confirmation (8.2.11)
+const char* const CMD_P2P_DADDR = "P2PDA"; // P2P Device Address (11.2.2)
+const char* const CMD_P2P_WORD = "P2PSW"; // P2P Sync Word (11.2.3)
 
 const char* const RSPNS_OK = "OK";
 const char* const RSPNS_FAILED = "Failed";
@@ -160,6 +165,7 @@ class SMW_SX1276M0 {
     CommandResponse get_AppEUI(char (&)[SMW_SX1276M0_SIZE_APPEUI]);
     CommandResponse get_AppKey(char (&)[SMW_SX1276M0_SIZE_APPKEY]);
     CommandResponse get_AppSKey(char (&)[SMW_SX1276M0_SIZE_APPSKEY]);
+    CommandResponse get_Confirmation(uint8_t (&));
     CommandResponse get_DevAddr(char (&)[SMW_SX1276M0_SIZE_DEVADDR]);
     CommandResponse get_DevEUI(char (&)[SMW_SX1276M0_SIZE_DEVEUI]);
     CommandResponse get_DR(uint8_t (&));
@@ -167,9 +173,14 @@ class SMW_SX1276M0 {
     void get_buffer(Buffer (&));
     CommandResponse get_JoinMode(uint8_t (&));
     CommandResponse get_JoinStatus(uint8_t (&));
+    CommandResponse get_NumberOfRetries(uint8_t (&));
     CommandResponse get_NwkSKey(char (&)[SMW_SX1276M0_SIZE_NWKSKEY]);
+    CommandResponse get_P2P_DevAddr(char (&)[SMW_SX1276M0_SIZE_DEVADDR]);
+    CommandResponse get_P2P_SyncWord(uint8_t (&));
+    CommandResponse get_Region(uint8_t (&));
     CommandResponse get_RSSI(double (&));
     CommandResponse get_SNR(double (&));
+    CommandResponse get_TXPower(uint8_t (&));
     CommandResponse get_Version(char (&)[SMW_SX1276M0_SIZE_VERSION]);
     bool isConnected(void);
     bool isSleeping(void);
@@ -193,21 +204,25 @@ class SMW_SX1276M0 {
     CommandResponse set_AppEUI(const char *);
     CommandResponse set_AppKey(const char *);
     CommandResponse set_AppSKey(const char *);
+    CommandResponse set_Confirmation(uint8_t);
     CommandResponse set_DevAddr(const char *);
     CommandResponse set_DevEUI(const char *);
     CommandResponse set_DR(uint8_t);
     CommandResponse set_Echo(uint8_t);
     CommandResponse set_JoinMode(uint8_t);
-    CommandResponse set_NwkSKey(const char *);
     CommandResponse set_NumberOfRetries(uint8_t);
-    CommandResponse set_Confirmation(uint8_t);
-    CommandResponse set_TXPower(uint8_t);
+    CommandResponse set_NwkSKey(const char *);
+    CommandResponse set_P2P_DevAddr(const char *);
+    CommandResponse set_P2P_SyncWord(uint8_t);
     CommandResponse set_Region(uint8_t);
-    void setPinReset(int16_t);
-    CommandResponse sleep(uint32_t = 0);
-
+    CommandResponse set_TXPower(uint8_t);
 #ifdef SMW_SX1276M0_DEBUG
     void setDebugger(Stream *);
+#endif
+    void setPinReset(int16_t);
+    CommandResponse sleep(uint32_t = 0);
+#ifdef SMW_SX1276M0_DEBUG
+    void unsetDebugger(void);
 #endif
 
   private:
@@ -223,6 +238,7 @@ class SMW_SX1276M0 {
 #endif
 
     void _delay(uint32_t);
+    CommandResponse _read_reset(void);
     CommandResponse _read_response(uint32_t);
     void _send_command(const char *, uint8_t = 0, ...);
 };

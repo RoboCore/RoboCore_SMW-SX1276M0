@@ -1,12 +1,14 @@
 /*******************************************************************************
-* RoboCore SMW_SX1276M0 Library (v1.0)
+* RoboCore SMW_SX1276M0 Library (v1.1)
 * 
 * Library to use the SMW_SX1276M0 LoRaWAN module.
 * 
-* Copyright 2022 RoboCore.
+* Copyright 2023 RoboCore.
 * Written by Francois (24/08/2020).
-* Updated by mcpicoli (24/02/2022): avoid narrowing conversion warnings.
+* Updated by @mcpicoli (24/02/2022): avoid narrowing conversion warnings.
 * Updated by Francois (02/03/2022): minor corrections.
+* Updated by Pedro Bertoleti (@phfbertoleti) (12/01/2023): added commands.
+* Updated by Francois (16/01/2023): added commands & minor corrections.
 * 
 * 
 * This file is part of the SMW_SX1276M0 library ("SMW_SX1276M0-lib").
@@ -66,22 +68,6 @@ SMW_SX1276M0::SMW_SX1276M0(Stream &stream, int16_t pin_reset) :
 
 
 // --------------------------------------------------
-// --------------------------------------------------
-
-// Custom delay in miliseconds
-//  @param (duration) : the duration of the delay in miliseconds [uint32_t]
-void SMW_SX1276M0::_delay(uint32_t duration){
-  uint32_t stop_time = millis() + duration;
-  while(millis() < stop_time){
-#if defined(ARDUINO_ESP8266_GENERIC) || defined(ARDUINO_ESP8266_NODEMCU) || defined(ARDUINO_ESP8266_THING) || defined(ARDUINO_ESP32_DEV)
-// ESP8266 Generic / NodeMCU / Sparkfun The Thing / ESP32 Dev
-    yield(); // custom function for a non blocking execution with the ESP family
-#else
-    // do nothing
-#endif
-  }
-}
-
 // --------------------------------------------------
 
 // Flush the buffered data in the stream
@@ -230,6 +216,29 @@ CommandResponse SMW_SX1276M0::get_AppSKey(char (&appskey)[SMW_SX1276M0_SIZE_APPS
       appskey[length] = CHAR_EOS;
     }
     _buffer.copy(reinterpret_cast<uint8_t *>(appskey));
+  }
+
+  return res;
+}
+
+// --------------------------------------------------
+
+// Get the uplink confirmation mode
+//  @param (mode) : the variable to store the result [uint8_t (&)]
+//  @returns the type of the response [CommandResponse]
+CommandResponse SMW_SX1276M0::get_Confirmation(uint8_t (&mode)){
+  // send the command and read the response
+  _send_command(CMD_CONFIRMATION);
+  CommandResponse res = _read_response(SMW_SX1276M0_TIMEOUT_READ);
+  
+#ifdef SMW_SX1276M0_DEBUG
+  _buffer.print(_stream_debug);
+#endif
+
+  if(res == CommandResponse::OK){
+    if(_buffer.available()){
+      mode = _buffer.read() - '0';
+    }
   }
 
   return res;
@@ -390,6 +399,29 @@ CommandResponse SMW_SX1276M0::get_JoinStatus(uint8_t (&status)){
 
 // --------------------------------------------------
 
+// Get number of uplink retries (when the confirmation mode is on)
+//  @param (num_retries) : the variable to store the result [uint8_t (&)]
+//  @returns the type of the response [CommandResponse]
+CommandResponse SMW_SX1276M0::get_NumberOfRetries(uint8_t (&num_retries)){
+  // send the command and read the response
+  _send_command(CMD_NUM_RETRIES);
+  CommandResponse res = _read_response(SMW_SX1276M0_TIMEOUT_READ);
+  
+#ifdef SMW_SX1276M0_DEBUG
+  _buffer.print(_stream_debug);
+#endif
+
+  if(res == CommandResponse::OK){
+    if(_buffer.available()){
+      num_retries = _buffer.read() - '0'; // (1 to 8)
+    }
+  }
+
+  return res;
+}
+
+// --------------------------------------------------
+
 // Get the Network Session Key
 //  @param (nwkskey) : the array to store the result [char[n]]
 //  @returns the type of the response [CommandResponse]
@@ -408,6 +440,83 @@ CommandResponse SMW_SX1276M0::get_NwkSKey(char (&nwkskey)[SMW_SX1276M0_SIZE_NWKS
       nwkskey[length] = CHAR_EOS;
     }
     _buffer.copy(reinterpret_cast<uint8_t *>(nwkskey));
+  }
+
+  return res;
+}
+
+// --------------------------------------------------
+
+// Get the P2P Device Address
+//  @param (devaddr) : the array to store the result [char[n]]
+//  @returns the type of the response [CommandResponse]
+CommandResponse SMW_SX1276M0::get_P2P_DevAddr(char (&devaddr)[SMW_SX1276M0_SIZE_DEVADDR]){
+  // send the command and read the response
+  _send_command(CMD_P2P_DADDR);
+  CommandResponse res = _read_response(SMW_SX1276M0_TIMEOUT_READ);
+  
+#ifdef SMW_SX1276M0_DEBUG
+  _buffer.print(_stream_debug);
+#endif
+
+  if(res == CommandResponse::OK){
+    uint8_t length = _buffer.available();
+    if(length < SMW_SX1276M0_SIZE_DEVADDR){
+      devaddr[length] = CHAR_EOS;
+    }
+    _buffer.copy(reinterpret_cast<uint8_t *>(devaddr));
+  }
+
+  return res;
+}
+
+// --------------------------------------------------
+
+// Get the P2P Sync Word
+//  @param (sync_word) : the variable to store the result [uint8_t (&)]
+//  @returns the type of the response [CommandResponse]
+CommandResponse SMW_SX1276M0::get_P2P_SyncWord(uint8_t (&sync_word)){
+  // send the command and read the response
+  _send_command(CMD_P2P_WORD);
+  CommandResponse res = _read_response(SMW_SX1276M0_TIMEOUT_READ);
+  
+#ifdef SMW_SX1276M0_DEBUG
+  _buffer.print(_stream_debug);
+#endif
+
+  if(res == CommandResponse::OK){
+    char buffer_value[4] = { '0' }; // default value is 0
+    uint8_t index = 0;
+    while(_buffer.available()){
+      char c = _buffer.read();
+      if(isdigit(c)){
+        buffer_value[index++] = c;
+      }
+      sync_word = uint8_t(atoi(buffer_value)); // (1 to 255)
+    }
+  }
+
+  return res;
+}
+
+// --------------------------------------------------
+
+// Get the LoRaWAN Region
+//  @param (region) : the variable to store the result [uint8_t (&)]
+//  @returns the type of the response [CommandResponse]
+CommandResponse SMW_SX1276M0::get_Region(uint8_t (&region)){
+  // send the command and read the response
+  _send_command(CMD_REGION);
+  CommandResponse res = _read_response(SMW_SX1276M0_TIMEOUT_READ);
+  
+#ifdef SMW_SX1276M0_DEBUG
+  _buffer.print(_stream_debug);
+#endif
+
+  if(res == CommandResponse::OK){
+    if(_buffer.available()){
+      region = _buffer.read() - '0'; // (0 to 9)
+    }
   }
 
   return res;
@@ -465,6 +574,35 @@ CommandResponse SMW_SX1276M0::get_SNR(double (&snr)){
         buffer_value[index++] = c;
       }
       snr = atof(buffer_value);
+    }
+  }
+
+  return res;
+}
+
+// --------------------------------------------------
+
+// Get the Transmit Power
+//  @param (tx_power) : the variable to store the result [uint8_t (&)]
+//  @returns the type of the response [CommandResponse]
+CommandResponse SMW_SX1276M0::get_TXPower(uint8_t (&tx_power)){
+  // send the command and read the response
+  _send_command(CMD_TXP);
+  CommandResponse res = _read_response(SMW_SX1276M0_TIMEOUT_READ);
+  
+#ifdef SMW_SX1276M0_DEBUG
+  _buffer.print(_stream_debug);
+#endif
+
+  if(res == CommandResponse::OK){
+    char buffer_value[3] = { '0' }; // default value is 0
+    uint8_t index = 0;
+    while(_buffer.available()){
+      char c = _buffer.read();
+      if(isdigit(c)){
+        buffer_value[index++] = c;
+      }
+      tx_power = uint8_t(atoi(buffer_value)); // (0 to 10)
     }
   }
 
@@ -736,6 +874,690 @@ CommandResponse SMW_SX1276M0::ping(void){
 
 // --------------------------------------------------
 
+// Read a text message from the module
+//  @returns the type of the response [CommandResponse]
+//  NOTE: the data must be obtained from the buffer
+CommandResponse SMW_SX1276M0::readT(void){
+  // send the command and read the response
+  _send_command(CMD_RECV);
+  return _read_response(SMW_SX1276M0_TIMEOUT_READ_DOWNLINK);
+}
+
+// --------------------------------------------------
+
+// Read a text message from the module
+//  @param (buffer) : the buffer to store the payload [Buffer (&)]
+//  @returns the type of the response [CommandResponse]
+CommandResponse SMW_SX1276M0::readT(Buffer (&buffer)){
+  uint8_t port;
+  return readT(port, buffer);
+}
+
+// --------------------------------------------------
+
+// Read a text message from the module
+//  @param (port) : the application port [uint8_t (&)]
+//         (buffer) : the buffer to store the payload [Buffer (&)]
+//  @returns the type of the response [CommandResponse]
+CommandResponse SMW_SX1276M0::readT(uint8_t (&port), Buffer (&buffer)){
+  CommandResponse res = readT(); // read the message
+
+  // parse the message
+  uint8_t b;
+  bool payload = false;
+  char sport[5] = { CHAR_EOS }; // 0 to 9999
+  uint8_t index = 0;
+  while (_buffer.available()){
+    b = _buffer.read();
+
+    // check for delimitter
+    if(b == CHAR_COLON){
+      payload = true; // set
+      buffer.resize(_buffer.available()); // resize the buffer
+      continue;
+    }
+
+    // parse
+    if(!payload){
+      if((index < 4) && isdigit(b)){
+        sport[index++] = b;
+        sport[index] = CHAR_EOS;
+      }
+    } else {
+      buffer.append(b);
+    }
+  }
+  port = atoi(sport); // convert
+
+  return res;
+}
+
+// --------------------------------------------------
+
+// Read an hexadecimal message from the module
+//  @returns the type of the response [CommandResponse]
+//  NOTE: the data must be obtained from the buffer
+CommandResponse SMW_SX1276M0::readX(void){
+  // send the command and read the response
+  _send_command(CMD_RECVB);
+  return _read_response(SMW_SX1276M0_TIMEOUT_READ_DOWNLINK);
+}
+// --------------------------------------------------
+
+// Read an hexadecimal message from the module
+//  @param (buffer) : the buffer to store the payload [Buffer (&)]
+//  @returns the type of the response [CommandResponse]
+CommandResponse SMW_SX1276M0::readX(Buffer (&buffer)){
+  uint8_t port;
+  return readX(port, buffer);
+}
+
+// --------------------------------------------------
+
+// Read an hexadecimal message from the module
+//  @param (port) : the application port [uint8_t (&)]
+//         (buffer) : the buffer to store the payload [Buffer (&)]
+//  @returns the type of the response [CommandResponse]
+CommandResponse SMW_SX1276M0::readX(uint8_t (&port), Buffer (&buffer)){
+  CommandResponse res = readX(); // read the message
+
+  // parse the message
+  uint8_t b;
+  bool payload = false;
+  char sport[5] = { CHAR_EOS }; // 0 to 9999
+  uint8_t index = 0;
+  while (_buffer.available()){
+    b = _buffer.read();
+
+    // check for delimitter
+    if(b == CHAR_COLON){
+      payload = true; // set
+      buffer.resize(_buffer.available()); // resize the buffer
+      continue;
+    }
+
+    // parse
+    if(!payload){
+      if((index < 4) && isdigit(b)){
+        sport[index++] = b;
+        sport[index] = CHAR_EOS;
+      }
+    } else {
+      buffer.append(b);
+    }
+  }
+  port = atoi(sport); // convert
+
+  return res;
+}
+
+// --------------------------------------------------
+
+// Reset the module
+//  @returns the type of the response [CommandResponse]
+CommandResponse SMW_SX1276M0::reset(void){
+  if(_pin_reset < 0){
+    // the reset pin is not set, so do a software reset
+    _send_command(CMD_RESET);
+  } else {
+    // the reset pin is set, so do a hardware reset
+    // Reference: elr100ul00-datasheet-eng-0.3v.pdf, page 12, section 4.1 says the pin should be kept as an input
+    // However this is not compatible with some pins on some architectures that have fixed internal pull-up resistors
+    // when in INPUT mode.
+    digitalWrite(_pin_reset, HIGH); // active HIGH (Robocore's modules have a transistor as an inverter instead of a MOSFET)
+    _delay(2); // 2 ms (minimum is 1 ms)
+    digitalWrite(_pin_reset, LOW);
+  }
+
+  _reset = false; // reset
+
+  return _read_reset();
+}
+
+// --------------------------------------------------
+
+// Send a text message
+//  @param (port) : the application port [uint8_t]
+//         (data) : the text data to send [char *]
+//  @returns the type of the response [CommandResponse]
+CommandResponse SMW_SX1276M0::sendT(uint8_t port, const char *data){
+  // parse the port
+  uint8_t aport = port; // auxiliary variable for <port>
+  uint8_t temp[3];
+
+  temp[0] = aport / 100;
+  aport %= 100;
+  temp[1] = aport / 10;
+  temp[2] = aport % 10;
+
+  // set the header (port)
+  uint8_t sport[5]; // port stringified
+  uint8_t index = 0;
+  aport = 0; // reset
+  for(uint8_t i=0 ; i < 3 ; i++){
+    if((temp[i] > 0) || (aport > 0)){
+      sport[index++] = temp[i] + '0'; // convert to ASCII character
+    }
+    aport += temp[i]; // update (simple)
+  }
+  sport[index++] = CHAR_COLON;
+  sport[index] = CHAR_EOS;
+  
+  // send the command and read the response
+  _send_command(CMD_SEND, 2, sport, data);
+  return _read_response(SMW_SX1276M0_TIMEOUT_WRITE); // this command takes almost 1 s to reply
+}
+
+// --------------------------------------------------
+
+// Send a text message
+//  @param (port) : the application port [uint8_t]
+//         (data) : the text data to send [String]
+//  @returns the type of the response [CommandResponse]
+CommandResponse SMW_SX1276M0::sendT(uint8_t port, const String data){
+  uint8_t length = data.length() + 1;
+  char cdata[length]; // create a temporary string
+  data.toCharArray(cdata, length); // copy the data (with automatic EOS)
+  return sendT(port, cdata);
+}
+
+// --------------------------------------------------
+
+// Send an hexadecimal message
+//  @param (port) : the application port [uint8_t]
+//         (data) : the text data to send [char *]
+//  @returns the type of the response [CommandResponse]
+CommandResponse SMW_SX1276M0::sendX(uint8_t port, const char *data){
+  // parse the port
+  uint8_t aport = port; // auxiliary variable for <port>
+  uint8_t temp[3];
+
+  temp[0] = aport / 100;
+  aport %= 100;
+  temp[1] = aport / 10;
+  temp[2] = aport % 10;
+
+  // set the header (port)
+  uint8_t sport[5]; // port stringified
+  uint8_t index = 0;
+  aport = 0; // reset
+  for(uint8_t i=0 ; i < 3 ; i++){
+    if((temp[i] > 0) || (aport > 0)){
+      sport[index++] = temp[i] + '0'; // convert to ASCII character
+    }
+    aport += temp[i]; // update (simple)
+  }
+  sport[index++] = CHAR_COLON;
+  sport[index] = CHAR_EOS;
+  
+  // send the command and read the response
+  _send_command(CMD_SENDB, 2, sport, data);
+  return _read_response(SMW_SX1276M0_TIMEOUT_WRITE); // this command takes almost 1 s to reply
+}
+
+// --------------------------------------------------
+
+// Send an hexadecimal message
+//  @param (port) : the application port [uint8_t]
+//         (data) : the text data to send [String]
+//  @returns the type of the response [CommandResponse]
+CommandResponse SMW_SX1276M0::sendX(uint8_t port, const String data){
+  uint8_t length = data.length() + 1;
+  char cdata[length]; // create a temporary string
+  data.toCharArray(cdata, length); // copy the data (with automatic EOS)
+  return sendX(port, cdata);
+}
+
+// --------------------------------------------------
+
+// Set the Adaptive Data Rate
+//  @param (adr) : the data to be sent [uint8_t]
+//  @returns the type of the response [CommandResponse]
+CommandResponse SMW_SX1276M0::set_ADR(uint8_t adr){
+  adr = (adr == SMW_SX1276M0_ADR_ON) ? SMW_SX1276M0_ADR_ON : SMW_SX1276M0_ADR_OFF; // force binary value
+  adr += '0'; // convert to ASCII character
+  char data[] = { static_cast<char>(adr) , CHAR_EOS}; // (static cast to avoid narrowing conversion warnings)
+  
+  // send the command and read the response
+  _send_command(CMD_ADR, 1, data);
+  CommandResponse res = _read_response(SMW_SX1276M0_TIMEOUT_WRITE); // this command takes almost 1 s to reply
+
+  return res;
+}
+
+// --------------------------------------------------
+
+// Set the Automatic Join
+//  @param (ajoin) : the data to be sent [uint8_t]
+//  @returns the type of the response [CommandResponse]
+CommandResponse SMW_SX1276M0::set_AJoin(uint8_t ajoin){
+  ajoin = (ajoin == SMW_SX1276M0_AUTOMATIC_JOIN_ON) ? SMW_SX1276M0_AUTOMATIC_JOIN_ON : SMW_SX1276M0_AUTOMATIC_JOIN_OFF; // force binary value
+  ajoin += '0'; // convert to ASCII character
+  char data[] = { static_cast<char>(ajoin), CHAR_EOS}; // (static cast to avoid narrowing conversion warnings)
+  
+  // send the command and read the response
+  _send_command(CMD_AJOIN, 1, data);
+  CommandResponse res = _read_response(SMW_SX1276M0_TIMEOUT_WRITE); // this command takes almost 1 s to reply
+
+  return res;
+}
+
+// --------------------------------------------------
+
+// Set the RTC wakeup time
+//  @param (alarm) : the data to be sent [uint32_t]
+//  @returns the type of the response [CommandResponse]
+CommandResponse SMW_SX1276M0::set_Alarm(uint32_t alarm){
+  // check the value
+  const uint32_t max_time = 10^9;
+  if(alarm >= max_time){
+    alarm = max_time;
+  }
+
+  // convert to ASCII character
+  char data[10];
+  itoa(alarm, data, 10); // NOTE: this function is not defined in ANSI-C and is not part of C++, but is supported by some compilers
+  data[9] = CHAR_EOS;
+  
+  // send the command and read the response
+  _send_command(CMD_ALARM, 1, data);
+  CommandResponse res = _read_response(SMW_SX1276M0_TIMEOUT_WRITE); // this command takes almost 1 s to reply
+
+  return res;
+}
+
+// --------------------------------------------------
+
+// Set the Application EUI
+//  @param (appeui) : the array with the data to be sent [char *]
+//  @returns the type of the response [CommandResponse]
+CommandResponse SMW_SX1276M0::set_AppEUI(const char *appeui){
+  // filter the data
+  char str[SMW_SX1276M0_SIZE_APPEUI + 1];
+  str[SMW_SX1276M0_SIZE_APPEUI] = CHAR_EOS;
+  filter_string(str, SMW_SX1276M0_SIZE_APPEUI, appeui, FILTER_HEX);
+  
+  // send the command and read the response
+  _send_command(CMD_APPEUI, 1, str);
+  CommandResponse res = _read_response(SMW_SX1276M0_TIMEOUT_WRITE); // this command takes almost 1 s to reply
+
+  return res;
+}
+
+// --------------------------------------------------
+
+// Set the Application Key
+//  @param (appkey) : the array with the data to be sent [char *]
+//  @returns the type of the response [CommandResponse]
+CommandResponse SMW_SX1276M0::set_AppKey(const char *appkey){
+  // filter the data
+  char str[SMW_SX1276M0_SIZE_APPKEY + 1];
+  str[SMW_SX1276M0_SIZE_APPKEY] = CHAR_EOS;
+  filter_string(str, SMW_SX1276M0_SIZE_APPKEY, appkey, FILTER_HEX);
+  
+  // send the command and read the response
+  _send_command(CMD_APPKEY, 1, str);
+  CommandResponse res = _read_response(SMW_SX1276M0_TIMEOUT_WRITE); // this command takes almost 1 s to reply
+
+  return res;
+}
+
+// --------------------------------------------------
+
+// Set the Application Session Key
+//  @param (appskey) : the array with the data to be sent [char *]
+//  @returns the type of the response [CommandResponse]
+CommandResponse SMW_SX1276M0::set_AppSKey(const char *appskey){
+  // filter the data
+  char str[SMW_SX1276M0_SIZE_APPSKEY + 1];
+  str[SMW_SX1276M0_SIZE_APPSKEY] = CHAR_EOS;
+  filter_string(str, SMW_SX1276M0_SIZE_APPSKEY, appskey, FILTER_HEX);
+  
+  // send the command and read the response
+  _send_command(CMD_APPSKEY, 1, str);
+  CommandResponse res = _read_response(SMW_SX1276M0_TIMEOUT_WRITE); // this command takes almost 1 s to reply
+
+  return res;
+}
+
+// --------------------------------------------------
+
+// Set the uplink confirmation mode
+//  @param (confirm_mode) : confirmation mode (0 for setting confirmation off; 1 for setting confirmation on) [uint8_t]
+//  @returns the type of the response [CommandResponse]
+CommandResponse SMW_SX1276M0::set_Confirmation(uint8_t confirm_mode){
+  // check the value
+  if ((confirm_mode != 0) && (confirm_mode != 1) ){
+    return CommandResponse::ERROR;
+  }
+
+  char data[2] = { CHAR_EOS };
+  snprintf(data, sizeof(data), "%d%c", confirm_mode, CHAR_EOS);
+
+  // send the command and read the response
+  _send_command(CMD_CONFIRMATION, 1, data);
+  CommandResponse res = _read_response(SMW_SX1276M0_TIMEOUT_WRITE);
+  return res;
+}
+
+// --------------------------------------------------
+
+// Set the Device Address
+//  @param (devaddr) : the array with the data to be sent [char *]
+//  @returns the type of the response [CommandResponse]
+CommandResponse SMW_SX1276M0::set_DevAddr(const char *devaddr){
+  // filter the data
+  char str[SMW_SX1276M0_SIZE_DEVADDR + 1];
+  str[SMW_SX1276M0_SIZE_DEVADDR] = CHAR_EOS;
+  filter_string(str, SMW_SX1276M0_SIZE_DEVADDR, devaddr, FILTER_HEX);
+  
+  // send the command and read the response
+  _send_command(CMD_DADDR, 1, str);
+  CommandResponse res = _read_response(SMW_SX1276M0_TIMEOUT_WRITE); // this command takes almost 1 s to reply
+
+  return res;
+}
+
+// --------------------------------------------------
+
+// Set the Device EUI
+//  @param (deveui) : the array with the data to be sent [char *]
+//  @returns the type of the response [CommandResponse]
+CommandResponse SMW_SX1276M0::set_DevEUI(const char *deveui){
+  // filter the data
+  char str[SMW_SX1276M0_SIZE_DEVEUI + 1];
+  str[SMW_SX1276M0_SIZE_DEVEUI] = CHAR_EOS;
+  filter_string(str, SMW_SX1276M0_SIZE_DEVEUI, deveui, FILTER_HEX);
+  
+  // send the command and read the response
+  _send_command(CMD_DEVEUI, 1, str);
+  CommandResponse res = _read_response(SMW_SX1276M0_TIMEOUT_WRITE); // this command takes almost 1 s to reply
+
+  return res;
+}
+
+// --------------------------------------------------
+
+// Set the Data Rate
+//  @param (dr) : the data to be sent [uint8_t]
+//  @returns the type of the response [CommandResponse]
+CommandResponse SMW_SX1276M0::set_DR(uint8_t dr){
+  // check the value
+  if(dr > 7){
+    return CommandResponse::ERROR;
+  }
+  
+  dr += '0'; // convert to ASCII character
+  char data[] = { static_cast<char>(dr), CHAR_EOS}; // (static cast to avoid narrowing conversion warnings)
+  
+  // send the command and read the response
+  _send_command(CMD_DR, 1, data);
+  CommandResponse res = _read_response(SMW_SX1276M0_TIMEOUT_WRITE); // this command takes almost 1 s to reply
+
+  return res;
+}
+
+// --------------------------------------------------
+
+// Set the Echo configuration
+//  @param (echo) : the data to be sent [uint8_t]
+//  @returns the type of the response [CommandResponse]
+CommandResponse SMW_SX1276M0::set_Echo(uint8_t echo){
+  echo = (echo == SMW_SX1276M0_ECHO_ON) ? SMW_SX1276M0_ECHO_ON : SMW_SX1276M0_ECHO_OFF; // force binary value
+  echo += '0'; // convert to ASCII character
+  char data[] = { static_cast<char>(echo), CHAR_EOS}; // (static cast to avoid narrowing conversion warnings)
+  
+  // send the command and read the response
+  _send_command(CMD_ECHO, 1, data);
+  CommandResponse res = _read_response(SMW_SX1276M0_TIMEOUT_WRITE); // this command takes almost 1 s to reply
+
+  return res;
+}
+
+// --------------------------------------------------
+
+// Set the Join Mode
+//  @param (mode) : the data to be sent [uint8_t]
+//  @returns the type of the response [CommandResponse]
+//  NOTE: this command resets the module
+CommandResponse SMW_SX1276M0::set_JoinMode(uint8_t mode){
+  // check the value
+  if(mode > SMW_SX1276M0_JOIN_MODE_P2P){
+    return CommandResponse::ERROR;
+  }
+
+  mode += '0'; // convert to ASCII character
+  char data[] = { static_cast<char>(mode) , CHAR_EOS}; // (static cast to avoid narrowing conversion warnings)
+  
+  // send the command and read the response
+  _send_command(CMD_NJM, 1, data);
+
+  _reset = false; // reset
+
+  return _read_reset();
+}
+
+// --------------------------------------------------
+
+// Set number of uplink retries (when the confirmation mode is on)
+//  @param (num_retries) : number of retries (1 to 8) [uint8_t]
+//  @returns the type of the response [CommandResponse]
+CommandResponse SMW_SX1276M0::set_NumberOfRetries(uint8_t num_retries){
+  // check the value
+  if ((num_retries < 1) || (num_retries > 8) ){
+    return CommandResponse::ERROR;
+  }
+
+  char data[2] = { CHAR_EOS };
+  snprintf(data, sizeof(data), "%d%c", num_retries, CHAR_EOS);
+
+  // send the command and read the response
+  _send_command(CMD_NUM_RETRIES, 1, data);
+  CommandResponse res = _read_response(SMW_SX1276M0_TIMEOUT_WRITE);
+  return res;
+}
+
+// --------------------------------------------------
+
+// Set the Network Session Key
+//  @param (nwkskey) : the array with the data to be sent [char *]
+//  @returns the type of the response [CommandResponse]
+CommandResponse SMW_SX1276M0::set_NwkSKey(const char *nwkskey){
+  // filter the data
+  char str[SMW_SX1276M0_SIZE_NWKSKEY + 1];
+  str[SMW_SX1276M0_SIZE_NWKSKEY] = CHAR_EOS;
+  filter_string(str, SMW_SX1276M0_SIZE_NWKSKEY, nwkskey, FILTER_HEX);
+  
+  // send the command and read the response
+  _send_command(CMD_NWKSKEY, 1, str);
+  CommandResponse res = _read_response(SMW_SX1276M0_TIMEOUT_WRITE); // this command takes almost 1 s to reply
+
+  return res;
+}
+
+// --------------------------------------------------
+
+// Set the P2P Device Address
+//  @param (devaddr) : the array with the data to be sent [char *]
+//  @returns the type of the response [CommandResponse]
+CommandResponse SMW_SX1276M0::set_P2P_DevAddr(const char *devaddr){
+  // filter the data
+  char str[SMW_SX1276M0_SIZE_DEVADDR + 1];
+  str[SMW_SX1276M0_SIZE_DEVADDR] = CHAR_EOS;
+  filter_string(str, SMW_SX1276M0_SIZE_DEVADDR, devaddr, FILTER_HEX);
+  
+  // send the command and read the response
+  _send_command(CMD_P2P_DADDR, 1, str);
+  CommandResponse res = _read_response(SMW_SX1276M0_TIMEOUT_WRITE); // this command takes almost 1 s to reply
+
+  return res;
+}
+
+// --------------------------------------------------
+
+// Set the P2P Sync Word
+//  @param (sync_word) : the word to set (1 to 255) [uint8_t]
+//  @returns the type of the response [CommandResponse]
+CommandResponse SMW_SX1276M0::set_P2P_SyncWord(uint8_t sync_word){
+  // check the value
+  if (sync_word < 1){
+    return CommandResponse::ERROR;
+  }
+
+  char data[4] = { CHAR_EOS };
+  snprintf(data, sizeof(data), "%d%c", sync_word, CHAR_EOS);
+
+  // send the command and read the response
+  _send_command(CMD_P2P_WORD, 1, data);
+  CommandResponse res = _read_response(SMW_SX1276M0_TIMEOUT_WRITE); // this command takes almost 1 s to reply
+  return res;
+}
+
+// --------------------------------------------------
+
+// Set the LoRaWAN Region
+//  @param (region) : the region to set (0 to 9) [uint8_t]
+//  @returns the type of the response [CommandResponse]
+//  NOTE: this command resets the module
+CommandResponse SMW_SX1276M0::set_Region(uint8_t region){
+  // check the value
+  if (region > 9){
+    return CommandResponse::ERROR;
+  }
+
+  char data[2] = { CHAR_EOS };
+  snprintf(data, sizeof(data), "%d%c", region, CHAR_EOS);
+
+  // send the command and read the response
+  _send_command(CMD_REGION, 1, data);
+  return _read_reset();
+}
+
+// --------------------------------------------------
+
+// Set the Transmit Power
+//  @param (tx_power) : the power to set (0 to 10) [uint8_t]
+//  @returns the type of the response [CommandResponse]
+CommandResponse SMW_SX1276M0::set_TXPower(uint8_t tx_power){
+  // check the value
+  if (tx_power > 10){
+    return CommandResponse::ERROR;
+  }
+
+  char data[3] = { CHAR_EOS };
+  snprintf(data, sizeof(data), "%d%c", tx_power, CHAR_EOS);
+
+  // send the command and read the response
+  _send_command(CMD_TXP, 1, data);
+  CommandResponse res = _read_response(SMW_SX1276M0_TIMEOUT_WRITE); // this command takes almost 1 s to reply
+  return res;
+}
+
+// --------------------------------------------------
+
+// Set the debugger of the object
+//  @param (debugger) : the stream to print to [Stream *]
+#ifdef SMW_SX1276M0_DEBUG
+void SMW_SX1276M0::setDebugger(Stream *debugger){
+  _stream_debug = debugger;
+}
+#endif
+
+// --------------------------------------------------
+
+// Set the pin for reset
+//  @param (pin_reset) : the pin to reset the module [int16_t]
+void SMW_SX1276M0::setPinReset(int16_t pin_reset){
+  _pin_reset = pin_reset;
+  pinMode(_pin_reset, OUTPUT);
+  digitalWrite(_pin_reset, LOW); // active HIGH
+}
+
+// --------------------------------------------------
+
+// Sleep
+//  @param (alarm) : the duration of the sleep [uint32_t] (default: 0)
+//  @returns the type of the response [CommandResponse]
+//  NOTE: <alarm = 0> means that the parameter is ignored
+//  NOTE: the confirmation is asynchronous (<listen()>)
+CommandResponse SMW_SX1276M0::sleep(uint32_t alarm){
+  // update the alarm if necessary
+  if(alarm){
+    CommandResponse res = set_Alarm(alarm);
+    if(res != CommandResponse::OK){
+      return res;
+    }
+  }
+
+  _send_command(CMD_SLEEP); // send the command
+
+  return CommandResponse::OK;
+}
+
+// --------------------------------------------------
+
+// Unset the debugger of the object
+#ifdef SMW_SX1276M0_DEBUG
+void SMW_SX1276M0::unsetDebugger(void){
+  _stream_debug = nullptr;
+}
+#endif
+
+// --------------------------------------------------
+// --------------------------------------------------
+
+// Custom delay in miliseconds
+//  @param (duration) : the duration of the delay in miliseconds [uint32_t]
+void SMW_SX1276M0::_delay(uint32_t duration){
+  uint32_t stop_time = millis() + duration;
+  while(millis() < stop_time){
+#if defined(ARDUINO_ESP8266_GENERIC) || defined(ARDUINO_ESP8266_NODEMCU) || defined(ARDUINO_ESP8266_THING) || defined(ARDUINO_ESP32_DEV)
+// ESP8266 Generic / NodeMCU / Sparkfun The Thing / ESP32 Dev
+    yield(); // custom function for a non blocking execution with the ESP family
+#else
+    // do nothing
+#endif
+  }
+}
+
+// --------------------------------------------------
+
+// Read the response of a reset command
+//  @returns the type of the response [CommandResponse]
+CommandResponse SMW_SX1276M0::_read_reset(void){
+  CommandResponse res = CommandResponse::ERROR;
+  CommandResponse temp;
+  uint8_t count = 0;
+  
+  // read the incoming data
+  uint32_t stop_time = millis() + SMW_SX1276M0_TIMEOUT_RESET;
+  while(millis() < stop_time){
+    temp = listen(false); // listen for incoming messages
+
+    // check for the reset event
+    if(_reset && (temp == CommandResponse::OK)){
+      _reset = false; // reset (not really necessary, but useful to prevent further errors)
+      res = CommandResponse::OK;
+    }
+
+    // leave the loop if there is no more data, but only after reading the reset event (or the result can be inconsistent)
+    // NOTE: <listen()> is faster than the reset procedure, so the module must be given some time before returning to the program
+    if(temp == CommandResponse::ERROR){
+      _delay(SMW_SX1276M0_DELAY_INCOMING_DATA); // give some time for data to arrive
+      count++;
+      if((count > 100) && (res == CommandResponse::OK)){
+        break;
+      }
+    } else {
+      count = 0; // reset
+    }
+  }
+
+  return res;
+}
+
+// --------------------------------------------------
+
 // Read the response of a command
 //  @param (timeout) : the time to wait for the response in miliseconds [uint32_t]
 //  @returns the type of the response [CommandResponse]
@@ -843,350 +1665,6 @@ CommandResponse SMW_SX1276M0::_read_response(uint32_t timeout){
 
 // --------------------------------------------------
 
-// Read a text message from the module
-//  @returns the type of the response [CommandResponse]
-//  NOTE: the data must be obtained from the buffer
-CommandResponse SMW_SX1276M0::readT(void){
-  // send the command and read the response
-  _send_command(CMD_RECV);
-  return _read_response(SMW_SX1276M0_TIMEOUT_READ_DOWNLINK);
-}
-
-// --------------------------------------------------
-
-// Read a text message from the module
-//  @param (buffer) : the buffer to store the payload [Buffer (&)]
-//  @returns the type of the response [CommandResponse]
-CommandResponse SMW_SX1276M0::readT(Buffer (&buffer)){
-  uint8_t port;
-  return readT(port, buffer);
-}
-
-// --------------------------------------------------
-
-// Read a text message from the module
-//  @param (port) : the application port [uint8_t (&)]
-//         (buffer) : the buffer to store the payload [Buffer (&)]
-//  @returns the type of the response [CommandResponse]
-CommandResponse SMW_SX1276M0::readT(uint8_t (&port), Buffer (&buffer)){
-  CommandResponse res = readT(); // read the message
-
-  // parse the message
-  uint8_t b;
-  bool payload = false;
-  char sport[5]; // 0 to 9999
-  uint8_t index = 0;
-  while (_buffer.available()){
-    b = _buffer.read();
-
-    // check for delimitter
-    if(b == CHAR_COLON){
-      payload = true; // set
-      buffer.resize(_buffer.available()); // resize the buffer
-      continue;
-    }
-
-    // parse
-    if(!payload){
-      if((index < 4) && isdigit(b)){
-        sport[index++] = b;
-        sport[index] = CHAR_EOS;
-      }
-    } else {
-      buffer.append(b);
-    }
-  }
-  port = atoi(sport); // convert
-
-  return res;
-}
-
-// --------------------------------------------------
-
-// Read an hexadecimal message from the module
-//  @returns the type of the response [CommandResponse]
-//  NOTE: the data must be obtained from the buffer
-CommandResponse SMW_SX1276M0::readX(void){
-  // send the command and read the response
-  _send_command(CMD_RECVB);
-  return _read_response(SMW_SX1276M0_TIMEOUT_READ_DOWNLINK);
-}
-// --------------------------------------------------
-
-// Read an hexadecimal message from the module
-//  @param (buffer) : the buffer to store the payload [Buffer (&)]
-//  @returns the type of the response [CommandResponse]
-CommandResponse SMW_SX1276M0::readX(Buffer (&buffer)){
-  uint8_t port;
-  return readX(port, buffer);
-}
-
-// --------------------------------------------------
-
-// Read an hexadecimal message from the module
-//  @param (port) : the application port [uint8_t (&)]
-//         (buffer) : the buffer to store the payload [Buffer (&)]
-//  @returns the type of the response [CommandResponse]
-CommandResponse SMW_SX1276M0::readX(uint8_t (&port), Buffer (&buffer)){
-  CommandResponse res = readX(); // read the message
-
-  // parse the message
-  uint8_t b;
-  bool payload = false;
-  char sport[5]; // 0 to 9999
-  uint8_t index = 0;
-  while (_buffer.available()){
-    b = _buffer.read();
-
-    // check for delimitter
-    if(b == CHAR_COLON){
-      payload = true; // set
-      buffer.resize(_buffer.available()); // resize the buffer
-      continue;
-    }
-
-    // parse
-    if(!payload){
-      if((index < 4) && isdigit(b)){
-        sport[index++] = b;
-        sport[index] = CHAR_EOS;
-      }
-    } else {
-      buffer.append(b);
-    }
-  }
-  port = atoi(sport); // convert
-
-  return res;
-}
-
-// --------------------------------------------------
-// Set number of retries (when confirmation mode is on)
-//  @param : number of retries (1 .. 8)
-//  @returns the type of the response [CommandResponse]
-CommandResponse SMW_SX1276M0::set_NumberOfRetries(uint8_t num_retries){
-  // send the command and read the response
-  char data[4] = {CHAR_EOS};
-
-  if ((num_retries < 1) || (num_retries > 8) )
-  {
-    return CommandResponse::ERROR;
-  }
-
-  snprintf(data, sizeof(data), "%d%c", num_retries, CHAR_EOS);
-
-  _send_command(CMD_NUM_RETRIES, 1, data);
-  CommandResponse res = _read_response(SMW_SX1276M0_TIMEOUT_WRITE);
-  return res;
-}
-
-// --------------------------------------------------
-// Set confirmation mode
-//  @param : confirmation mode (0 for setting confirmation off; 1 for setting confirmation on)
-//  @returns the type of the response [CommandResponse]
-CommandResponse SMW_SX1276M0::set_Confirmation(uint8_t confirm_mode){
-  // send the command and read the response
-  char data[4] = {CHAR_EOS};
-
-  if ((confirm_mode != 0) && (confirm_mode != 1) )
-  {
-    return CommandResponse::ERROR;
-  }
-
-  snprintf(data, sizeof(data), "%d%c", confirm_mode, CHAR_EOS);
-
-  _send_command(CMD_CONFIRMATION, 1, data);
-  CommandResponse res = _read_response(SMW_SX1276M0_TIMEOUT_WRITE);
-  return res;
-}
-
-// --------------------------------------------------
-// Set the TX Power
-//  @param : power (0 .. 10)
-//  @returns the type of the response [CommandResponse]
-CommandResponse SMW_SX1276M0::set_TXPower(uint8_t tx_power){
-  // send the command and read the response
-  char data[4] = {CHAR_EOS};
-
-  if (tx_power > 10)
-  {
-    return CommandResponse::ERROR;
-  }
-
-  snprintf(data, sizeof(data), "%d%c", tx_power, CHAR_EOS);
-
-  _send_command(CMD_TXP, 1, data);
-  CommandResponse res = _read_response(SMW_SX1276M0_TIMEOUT_WRITE); // this command takes almost 1 s to reply
-  return res;
-}
-
-// --------------------------------------------------
-// Set the lorawan region
-//  @param : region (1 .. 9)
-//  @returns the type of the response [CommandResponse]
-CommandResponse SMW_SX1276M0::set_Region(uint8_t lorawan_region){
-  // send the command and read the response
-  char data[4] = {CHAR_EOS};
-
-  if (lorawan_region > 9)
-  {
-    return CommandResponse::ERROR;
-  }
-
-  snprintf(data, sizeof(data), "%d%c", lorawan_region, CHAR_EOS);
-
-  _send_command(CMD_REGION, 1, data);
-  CommandResponse res = _read_response(SMW_SX1276M0_TIMEOUT_WRITE); // this command takes almost 1 s to reply
-  return res;
-}
-
-// --------------------------------------------------
-
-// Reset the module
-//  @returns the type of the response [CommandResponse]
-CommandResponse SMW_SX1276M0::reset(void){
-  if(_pin_reset < 0){
-    // the reset pin is not set, so do a software reset
-    _send_command(CMD_RESET);
-  } else {
-    // the reset pin is set, so do a hardware reset
-    // Reference: elr100ul00-datasheet-eng-0.3v.pdf, page 12, section 4.1 says the pin should be kept as an input
-    // However this is not compatible with some pins on some architectures that have fixed internal pull-up resistors
-    // when in INPUT mode.
-    digitalWrite(_pin_reset, HIGH); // active HIGH (Robocore's modules have a transistor as an inverter instead of a MOSFET)
-    _delay(2); // 2 ms (minimum is 1 ms)
-    digitalWrite(_pin_reset, LOW);
-  }
-
-  _reset = false; // reset
-  CommandResponse res = CommandResponse::ERROR;
-  CommandResponse temp;
-  uint8_t count = 0;
-  
-  // read the incoming data
-  uint32_t stop_time = millis() + SMW_SX1276M0_TIMEOUT_RESET;
-  while(millis() < stop_time){
-    temp = listen(false); // listen for incoming messages
-
-    // check for the reset event
-    if(_reset && (temp == CommandResponse::OK)){
-      _reset = false; // reset (not really necessary, but useful to prevent further errors)
-      res = CommandResponse::OK;
-    }
-
-    // leave the loop if there is no more data, but only after reading the reset event (or the result can be inconsistent)
-    // NOTE: <listen()> is faster than the reset procedure, so the module must be given some time before returning to the program
-    if(temp == CommandResponse::ERROR){
-      _delay(SMW_SX1276M0_DELAY_INCOMING_DATA); // give some time for data to arrive
-      count++;
-      if((count > 100) && (res == CommandResponse::OK)){
-        break;
-      }
-    } else {
-      count = 0; // reset
-    }
-  }
-
-  return res;
-}
-
-// --------------------------------------------------
-
-// Send a text message
-//  @param (port) : the application port [uint8_t]
-//         (data) : the text data to send [char *]
-//  @returns the type of the response [CommandResponse]
-CommandResponse SMW_SX1276M0::sendT(uint8_t port, const char *data){
-  // parse the port
-  uint8_t aport = port; // auxiliary variable for <port>
-  uint8_t temp[3];
-
-  temp[0] = aport / 100;
-  aport %= 100;
-  temp[1] = aport / 10;
-  temp[2] = aport % 10;
-
-  // set the header (port)
-  uint8_t sport[5]; // port stringified
-  uint8_t index = 0;
-  aport = 0; // reset
-  for(uint8_t i=0 ; i < 3 ; i++){
-    if((temp[i] > 0) || (aport > 0)){
-      sport[index++] = temp[i] + '0'; // convert to ASCII character
-    }
-    aport += temp[i]; // update (simple)
-  }
-  sport[index++] = CHAR_COLON;
-  sport[index] = CHAR_EOS;
-  
-  // send the command and read the response
-  _send_command(CMD_SEND, 2, sport, data);
-  return _read_response(SMW_SX1276M0_TIMEOUT_WRITE); // this command takes almost 1 s to reply
-}
-
-// --------------------------------------------------
-
-// Send a text message
-//  @param (port) : the application port [uint8_t]
-//         (data) : the text data to send [String]
-//  @returns the type of the response [CommandResponse]
-CommandResponse SMW_SX1276M0::sendT(uint8_t port, const String data){
-  uint8_t length = data.length() + 1;
-  char cdata[length]; // create a temporary string
-  data.toCharArray(cdata, length); // copy the data (with automatic EOS)
-  return sendT(port, cdata);
-}
-
-// --------------------------------------------------
-
-// Send an hexadecimal message
-//  @param (port) : the application port [uint8_t]
-//         (data) : the text data to send [char *]
-//  @returns the type of the response [CommandResponse]
-CommandResponse SMW_SX1276M0::sendX(uint8_t port, const char *data){
-  // parse the port
-  uint8_t aport = port; // auxiliary variable for <port>
-  uint8_t temp[3];
-
-  temp[0] = aport / 100;
-  aport %= 100;
-  temp[1] = aport / 10;
-  temp[2] = aport % 10;
-
-  // set the header (port)
-  uint8_t sport[5]; // port stringified
-  uint8_t index = 0;
-  aport = 0; // reset
-  for(uint8_t i=0 ; i < 3 ; i++){
-    if((temp[i] > 0) || (aport > 0)){
-      sport[index++] = temp[i] + '0'; // convert to ASCII character
-    }
-    aport += temp[i]; // update (simple)
-  }
-  sport[index++] = CHAR_COLON;
-  sport[index] = CHAR_EOS;
-  
-  // send the command and read the response
-  _send_command(CMD_SENDB, 2, sport, data);
-  return _read_response(SMW_SX1276M0_TIMEOUT_WRITE); // this command takes almost 1 s to reply
-}
-
-// --------------------------------------------------
-
-// Send an hexadecimal message
-//  @param (port) : the application port [uint8_t]
-//         (data) : the text data to send [String]
-//  @returns the type of the response [CommandResponse]
-CommandResponse SMW_SX1276M0::sendX(uint8_t port, const String data){
-  uint8_t length = data.length() + 1;
-  char cdata[length]; // create a temporary string
-  data.toCharArray(cdata, length); // copy the data (with automatic EOS)
-  return sendX(port, cdata);
-}
-
-// --------------------------------------------------
-
-
 // Send a command to the module
 //  @param (command) : the command to send [char *]
 //         (qty)     : the quantity of other parameters to send [uint8_t]
@@ -1248,301 +1726,6 @@ void SMW_SX1276M0::_send_command(const char *command, uint8_t qty, ...){
   }
 #endif
   _stream->write(CHAR_CR);
-}
-
-// --------------------------------------------------
-
-// Set the Adaptive Data Rate
-//  @param (adr) : the data to be sent [uint8_t]
-//  @returns the type of the response [CommandResponse]
-CommandResponse SMW_SX1276M0::set_ADR(uint8_t adr){
-  adr = (adr == SMW_SX1276M0_ADR_ON) ? SMW_SX1276M0_ADR_ON : SMW_SX1276M0_ADR_OFF; // force binary value
-  adr += '0'; // convert to ASCII character (avoids "narrowing conversion" warnings)
-  char data[] = { adr , CHAR_EOS};
-  
-  // send the command and read the response
-  _send_command(CMD_ADR, 1, data);
-  CommandResponse res = _read_response(SMW_SX1276M0_TIMEOUT_WRITE); // this command takes almost 1 s to reply
-
-  return res;
-}
-
-// --------------------------------------------------
-
-// Set the Automatic Join
-//  @param (ajoin) : the data to be sent [uint8_t]
-//  @returns the type of the response [CommandResponse]
-CommandResponse SMW_SX1276M0::set_AJoin(uint8_t ajoin){
-  ajoin = (ajoin == SMW_SX1276M0_AUTOMATIC_JOIN_ON) ? SMW_SX1276M0_AUTOMATIC_JOIN_ON : SMW_SX1276M0_AUTOMATIC_JOIN_OFF; // force binary value
-  ajoin += '0'; // convert to ASCII character (avoids "narrowing conversion" warnings)
-  char data[] = { ajoin, CHAR_EOS};
-  
-  // send the command and read the response
-  _send_command(CMD_AJOIN, 1, data);
-  CommandResponse res = _read_response(SMW_SX1276M0_TIMEOUT_WRITE); // this command takes almost 1 s to reply
-
-  return res;
-}
-
-// --------------------------------------------------
-
-// Set the RTC wakeup time
-//  @param (alarm) : the data to be sent [uint32_t]
-//  @returns the type of the response [CommandResponse]
-CommandResponse SMW_SX1276M0::set_Alarm(uint32_t alarm){
-  // check the value
-  const uint32_t max_time = 10^9;
-  if(alarm >= max_time){
-    alarm = max_time;
-  }
-
-  // convert to ASCII character
-  char data[10];
-  itoa(alarm, data, 10); // NOTE: this function is not defined in ANSI-C and is not part of C++, but is supported by some compilers
-  data[9] = CHAR_EOS;
-  
-  // send the command and read the response
-  _send_command(CMD_ALARM, 1, data);
-  CommandResponse res = _read_response(SMW_SX1276M0_TIMEOUT_WRITE); // this command takes almost 1 s to reply
-
-  return res;
-}
-
-// --------------------------------------------------
-
-// Set the Application EUI
-//  @param (appeui) : the array with the data to be sent [char *]
-//  @returns the type of the response [CommandResponse]
-CommandResponse SMW_SX1276M0::set_AppEUI(const char *appeui){
-  // filter the data
-  char str[SMW_SX1276M0_SIZE_APPEUI + 1];
-  str[SMW_SX1276M0_SIZE_APPEUI] = CHAR_EOS;
-  filter_string(str, SMW_SX1276M0_SIZE_APPEUI, appeui, FILTER_HEX);
-  
-  // send the command and read the response
-  _send_command(CMD_APPEUI, 1, str);
-  CommandResponse res = _read_response(SMW_SX1276M0_TIMEOUT_WRITE); // this command takes almost 1 s to reply
-
-  return res;
-}
-
-// --------------------------------------------------
-
-// Set the Application Key
-//  @param (appkey) : the array with the data to be sent [char *]
-//  @returns the type of the response [CommandResponse]
-CommandResponse SMW_SX1276M0::set_AppKey(const char *appkey){
-  // filter the data
-  char str[SMW_SX1276M0_SIZE_APPKEY + 1];
-  str[SMW_SX1276M0_SIZE_APPKEY] = CHAR_EOS;
-  filter_string(str, SMW_SX1276M0_SIZE_APPKEY, appkey, FILTER_HEX);
-  
-  // send the command and read the response
-  _send_command(CMD_APPKEY, 1, str);
-  CommandResponse res = _read_response(SMW_SX1276M0_TIMEOUT_WRITE); // this command takes almost 1 s to reply
-
-  return res;
-}
-
-// --------------------------------------------------
-
-// Set the Application Session Key
-//  @param (appskey) : the array with the data to be sent [char *]
-//  @returns the type of the response [CommandResponse]
-CommandResponse SMW_SX1276M0::set_AppSKey(const char *appskey){
-  // filter the data
-  char str[SMW_SX1276M0_SIZE_APPSKEY + 1];
-  str[SMW_SX1276M0_SIZE_APPSKEY] = CHAR_EOS;
-  filter_string(str, SMW_SX1276M0_SIZE_APPSKEY, appskey, FILTER_HEX);
-  
-  // send the command and read the response
-  _send_command(CMD_APPSKEY, 1, str);
-  CommandResponse res = _read_response(SMW_SX1276M0_TIMEOUT_WRITE); // this command takes almost 1 s to reply
-
-  return res;
-}
-
-// --------------------------------------------------
-
-// Set the debugger of the object
-//  @param (debugger) : the stream to print to [Stream *]
-#ifdef SMW_SX1276M0_DEBUG
-void SMW_SX1276M0::setDebugger(Stream *debugger){
-  _stream_debug = debugger;
-}
-#endif
-
-// --------------------------------------------------
-
-// Set the Device Address
-//  @param (devaddr) : the array with the data to be sent [char *]
-//  @returns the type of the response [CommandResponse]
-CommandResponse SMW_SX1276M0::set_DevAddr(const char *devaddr){
-  // filter the data
-  char str[SMW_SX1276M0_SIZE_DEVADDR + 1];
-  str[SMW_SX1276M0_SIZE_DEVADDR] = CHAR_EOS;
-  filter_string(str, SMW_SX1276M0_SIZE_DEVADDR, devaddr, FILTER_HEX);
-  
-  // send the command and read the response
-  _send_command(CMD_DADDR, 1, str);
-  CommandResponse res = _read_response(SMW_SX1276M0_TIMEOUT_WRITE); // this command takes almost 1 s to reply
-
-  return res;
-}
-
-// --------------------------------------------------
-
-// Set the Device EUI
-//  @param (deveui) : the array with the data to be sent [char *]
-//  @returns the type of the response [CommandResponse]
-CommandResponse SMW_SX1276M0::set_DevEUI(const char *deveui){
-  // filter the data
-  char str[SMW_SX1276M0_SIZE_DEVEUI + 1];
-  str[SMW_SX1276M0_SIZE_DEVEUI] = CHAR_EOS;
-  filter_string(str, SMW_SX1276M0_SIZE_DEVEUI, deveui, FILTER_HEX);
-  
-  // send the command and read the response
-  _send_command(CMD_DEVEUI, 1, str);
-  CommandResponse res = _read_response(SMW_SX1276M0_TIMEOUT_WRITE); // this command takes almost 1 s to reply
-
-  return res;
-}
-
-// --------------------------------------------------
-
-// Set the Data Rate
-//  @param (dr) : the data to be sent [uint8_t]
-//  @returns the type of the response [CommandResponse]
-CommandResponse SMW_SX1276M0::set_DR(uint8_t dr){
-  // check the value
-  if(dr > 7){
-    return CommandResponse::ERROR;
-  }
-  
-  dr += '0'; // convert to ASCII character (avoids "narrowing conversion" warnings)
-  char data[] = { dr, CHAR_EOS};
-  
-  // send the command and read the response
-  _send_command(CMD_DR, 1, data);
-  CommandResponse res = _read_response(SMW_SX1276M0_TIMEOUT_WRITE); // this command takes almost 1 s to reply
-
-  return res;
-}
-
-// --------------------------------------------------
-
-// Set the Echo configuration
-//  @param (echo) : the data to be sent [uint8_t]
-//  @returns the type of the response [CommandResponse]
-CommandResponse SMW_SX1276M0::set_Echo(uint8_t echo){
-  echo = (echo == SMW_SX1276M0_ECHO_ON) ? SMW_SX1276M0_ECHO_ON : SMW_SX1276M0_ECHO_OFF; // force binary value
-  echo += '0'; // convert to ASCII character (avoids "narrowing conversion" warnings)
-  char data[] = { echo, CHAR_EOS};
-  
-  // send the command and read the response
-  _send_command(CMD_ECHO, 1, data);
-  CommandResponse res = _read_response(SMW_SX1276M0_TIMEOUT_WRITE); // this command takes almost 1 s to reply
-
-  return res;
-}
-
-// --------------------------------------------------
-
-// Set the Join Mode
-//  @param (mode) : the data to be sent [uint8_t]
-//  @returns the type of the response [CommandResponse]
-//  NOTE: this command resets the module
-CommandResponse SMW_SX1276M0::set_JoinMode(uint8_t mode){
-  // check the value
-  if(mode > SMW_SX1276M0_JOIN_MODE_P2P){
-    return CommandResponse::ERROR;
-  }
-
-  mode += '0'; // convert to ASCII character (avoids "narrowing conversion" warnings)
-  char data[] = { mode , CHAR_EOS};
-  
-  // send the command and read the response
-  _send_command(CMD_NJM, 1, data);
-
-  _reset = false; // reset
-  CommandResponse res = CommandResponse::ERROR;
-  CommandResponse temp;
-  uint8_t count = 0;
-  
-  // read the incoming data
-  uint32_t stop_time = millis() + SMW_SX1276M0_TIMEOUT_RESET;
-  while(millis() < stop_time){
-    temp = listen(false); // listen for incoming messages
-
-    // check for the reset event
-    if(_reset && (temp == CommandResponse::OK)){
-      _reset = false; // reset (not really necessary, but useful to prevent further errors)
-      res = CommandResponse::OK;
-    }
-
-    // leave the loop if there is no more data, but only after reading the reset event (or the result can be inconsistent)
-    // NOTE: <listen()> is faster than the reset procedure, so the module must be given some time before returning to the program
-    if(temp == CommandResponse::ERROR){
-      _delay(SMW_SX1276M0_DELAY_INCOMING_DATA); // give some time for data to arrive
-      count++;
-      if((count > 100) && (res == CommandResponse::OK)){
-        break;
-      }
-    } else {
-      count = 0; // reset
-    }
-  }
-
-  return res;
-}
-
-// --------------------------------------------------
-
-// Set the Network Session Key
-//  @param (nwkskey) : the array with the data to be sent [char *]
-//  @returns the type of the response [CommandResponse]
-CommandResponse SMW_SX1276M0::set_NwkSKey(const char *nwkskey){
-  // filter the data
-  char str[SMW_SX1276M0_SIZE_NWKSKEY + 1];
-  str[SMW_SX1276M0_SIZE_NWKSKEY] = CHAR_EOS;
-  filter_string(str, SMW_SX1276M0_SIZE_NWKSKEY, nwkskey, FILTER_HEX);
-  
-  // send the command and read the response
-  _send_command(CMD_NWKSKEY, 1, str);
-  CommandResponse res = _read_response(SMW_SX1276M0_TIMEOUT_WRITE); // this command takes almost 1 s to reply
-
-  return res;
-}
-
-// --------------------------------------------------
-
-// Set the pin for reset
-//  @param (pin_reset) : the pin to reset the module [int16_t]
-void SMW_SX1276M0::setPinReset(int16_t pin_reset){
-  _pin_reset = pin_reset;
-  pinMode(_pin_reset, OUTPUT);
-  digitalWrite(_pin_reset, LOW); // active HIGH
-}
-
-// --------------------------------------------------
-
-// Sleep
-//  @param (alarm) : the duration of the sleep [uint32_t] (default: 0)
-//  @returns the type of the response [CommandResponse]
-//  NOTE: <alarm = 0> means that the parameter is ignored
-//  NOTE: the confirmation is asynchronous (<listen()>)
-CommandResponse SMW_SX1276M0::sleep(uint32_t alarm){
-  // update the alarm if necessary
-  if(alarm){
-    CommandResponse res = set_Alarm(alarm);
-    if(res != CommandResponse::OK){
-      return res;
-    }
-  }
-
-  _send_command(CMD_SLEEP); // send the command
-
-  return CommandResponse::OK;
 }
 
 // --------------------------------------------------
